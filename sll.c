@@ -146,6 +146,32 @@ void freeList(Node* head) {
     }
 }
 
+void numberofNodes(Node* head){
+    int count = 0;
+    Node* temp = 0;
+    temp = head;
+    while(temp != NULL){
+        count++;
+        temp = temp->next;
+    }
+    printf("Number of nodes in the list: %d\n", count);
+}
+
+Node* reverse(Node* head){
+    Node* prev = NULL;
+    Node* curr = head;
+    Node* next = NULL;
+
+    while(curr != NULL){
+        next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    return prev;
+}
+
 int main() {
     Node* head = NULL;
     int choice;
@@ -158,7 +184,9 @@ int main() {
         printf("5. Delete from end\n");
         printf("6. Delete from anywhere\n");
         printf("7. Print list\n");
-        printf("8. Exit\n");
+        printf("8. Reverse list\n");
+        printf("9. Display number of nodes\n");
+        printf("10. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
@@ -185,13 +213,21 @@ int main() {
                 printList(head);
                 break;
             case 8:
+                head = reverse(head);
+                printf("List reversed.\n");
+                printList(head);
+                break;
+            case 9:
+                numberofNodes(head);
+                break;
+            case 10:
                 freeList(head);
                 printf("Exiting...\n");
                 break;
             default:
                 printf("Invalid choice! Please try again.\n");
         }
-    } while (choice != 8);
+    } while (choice != 10);
 
     return 0;
 }
