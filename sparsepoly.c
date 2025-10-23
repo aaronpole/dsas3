@@ -15,10 +15,7 @@ void createPoly(Term poly[], int polysize) {
     }
 }
 
-/*
- * Adds poly1 and poly2 (both sorted in descending exponents).
- * Fills result[] and returns number of terms written into result (resSize).
- */
+
 int add(Term poly1[], Term poly2[], Term result[], int poly1size, int poly2size) {
     int i = 0, j = 0, k = 0;
     while (i < poly1size && j < poly2size) {
