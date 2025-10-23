@@ -1,92 +1,137 @@
 #include <stdio.h>
-#define MAX 100
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
-typedef struct{
-    int col;
-    int row;
-    int value;
-} Term;
-
-void readSparse(Term a[]){
-    printf("Enter number of rows, columns and non-zero elements: ");
-    scanf("%d %d %d",&a[0].row,&a[0].col,&a[0].value);
-
-    printf("Enter row, column and value for each non-zero element:\n");
-    for (int i = 1; i <= a[0].value; i++)
-        scanf("%d %d %d", &a[i].row, &a[i].col, &a[i].value);
-}
-
-void printSparse(Term a[]){
-    printf("Row\tCol\tVal\n");
-    for (int i = 0; i <= a[0].value; i++)
-        printf("%d\t%d\t%d\n", a[i].row, a[i].col, a[i].value);
-}
-
-void Transpose(Term a[], Term b[]){
-    b[0].row = a[0].col;
-    b[0].col = a[0].row;
-    b[0].value = a[0].value;
-
-    int k = 1;
-    for (int i = 0; i < a[0].col; i++){
-        for (int j = 1; j < a[0].value; j++){
-            if (a[j].col == i){
-                b[k].row = a[j].col;
-                b[k].col = a[j].col;
-                b[k].value = a[j].value;
-                k++;
-            }
-        }
-    }
-}
-
-void addSparse(Term a[], Term b[], Term c[]){
-    if (a[0].row != b[0].row || a[0].col != b[0].col){
-        printf("Addition not possible — dimensions differ!\n");
-        return;
-    }
-    c[0].row = a[0].row;
-    c[0].col = a[0].col;
-
-    int i = 1, j = 1, k = 1;
-    while ( i <= a[0].value && j <= a[0].value){
-        if (a[i].row == b[i].row && a[i].col == b[i].col){
-            c[k].row = a[i].row;
-            c[k].col = a[i].col;
-            c[k].value = a[i].value + b[j].value;
-            i++; j++; k++;
-        } else if (a[i].row < b[i].row || a[i].row == b[i].row && a[i].col < b[i].col){
-            c[k++] = a[i++];
-        } else {
-            c[k++] = b[j++];
-        }
-    }
-
-    while (i <= a[0].value){c[k++] = a[i++];}
-    while ( j <= b[0].value){c[k++] = b[j++];}
-    c[0].value = k - 1;
-}
-
-int main() {
-    Term a[MAX], b[MAX], sum[MAX], trans[MAX];
-
-    printf("Enter first sparse matrix:\n");
-    readSparse(a);
-    printf("Enter second sparse matrix:\n");
-    readSparse(b);
-
-    printf("\nFirst Matrix:\n");
-    displaySparse(a);
-    printf("\nSecond Matrix:\n");
-    displaySparse(b);
-
-    addSparse(a, b, sum);
-    printf("\nSum Matrix:\n");
-    displaySparse(sum);
-
-    transpose(a, trans);
-    printf("\nTranspose of First Matrix:\n");
-    displaySparse(trans);
-
+int precedence(char op){
+    if  (op == '^') return 3;
+    else if (op == '*' || op == '/') return 2;
+    else if (op == '+' || op == '-') return 1;
     return 0;
 }
+
+typedef struct Node{
+    char data;
+    struct Node *left, *right;
+} Node;
+
+typedef struct StackNode{
+    void* data;
+    struct StackNode* next;
+} StackNode;
+
+void push(StackNode** top,void* data){
+    StackNode* newNode = malloc(sizeof(StackNode));
+    newNode->data = data;
+    newNode->next = *top;
+    *top = newNode;
+}
+
+void* pop(StackNode** top){
+    if (*top == NULL) return NULL;
+    StackNode* temp = *top;
+    void* data = temp->data;
+    *top = temp->next;
+    free(temp);
+    return data;
+}
+
+void* peek(StackNode* top){
+    if (top == NULL) return NULL;
+    return top->data;
+}
+
+int isEmpty(StackNode* top){
+	return top == NULL;
+}
+
+
+Node* createNode(char data){
+	Node* newNode = malloc(sizeof(Node));
+	newNode -> data = data;
+	newNode -> left = newNode -> right = NULL;
+	return newNode;
+}
+
+void makeSubtree(StackNode** operands,char op){
+    Node* right = (Node*)pop(operands);
+    Node* left = (Node*)pop(operands);
+    Node* newNode = createNode(op);
+    newNode->left = left;
+    newNode->right = right;
+    push(operands,newNode);
+}
+
+Node* buildExprTree(char* expr){
+    StackNode* operands = NULL;
+    StackNode* operators = NULL;
+    for (int i = 0; expr[i]; i++){
+        char c = expr[i];
+        if (c == ' ') continue;
+        else if (isalnum(c)){
+            Node* newNode = createNode(c);
+            push(&operands,newNode);
+        }
+        else if (c=='('){
+            char* temp = malloc(sizeof(char));
+            *temp = c;
+            push(&operators,temp);
+        }
+        else if (c==')'){
+            while (!isEmpty(operators) && *((char*)peek(operators))!='('){
+                char op = *((char*)pop(&operators));
+                makeSubtree(&operands,op);
+            }
+            pop(&operators);
+        }
+        else{
+            while(!isEmpty(operators) &&
+            precedence(*((char*)peek(operators))) >= precedence(c)){
+                char op = *((char*)pop(&operators));
+                makeSubtree(&operands,op);
+            }
+            char* temp = malloc(sizeof(char));
+			*temp = c;
+			push(&operators, temp);
+        }
+    }
+    while(!isEmpty(operators)){
+		char op = *((char*)pop(&operators));
+		makeSubtree(&operands, op);
+	}
+	return (Node*)pop(&operands);
+
+}
+
+void preorder(Node* root){
+	if (!root) return;
+	printf("%c ", root->data);
+	preorder(root->left);
+	preorder(root->right);
+}
+
+void postorder(Node* root){
+	if (!root) return;
+	postorder(root->left);
+	postorder(root->right);
+	printf("%c ",root->data);
+}
+
+int main(){
+	char expr[100];
+	printf("Enter infix expression : ");
+	fgets(expr,100,stdin);
+	expr[strcspn(expr,"\n")] = '\0';
+	
+	Node* root = buildExprTree(expr);
+	
+	printf("Prefix : ");
+	preorder(root);
+	printf("\n");
+	
+	printf("Postfix : ");
+	postorder(root);
+	printf("\n");
+	return 0;
+}
+
