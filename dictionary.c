@@ -9,8 +9,8 @@ typedef struct Node{
 } Node;
 
 // Insert
-Node* createNode(char word[], char meaning[]) {
-    struct Node* newNode = malloc(sizeof(struct Node));
+Node* createNode(char word[], char meaning[]){
+    Node* newNode = (Node*)malloc(sizeof(Node));
     strcpy(newNode->word, word);
     strcpy(newNode->meaning, meaning);
     newNode->left = newNode->right = NULL;
