@@ -1,90 +1,127 @@
-#include <stdio.h>  
-#include <stdlib.h>  
-#include <ctype.h>  
-#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-typedef struct Node{
-    char data;
-    struct Node *left, *right;
-} Node;
+typedef struct HeapNode {
+    int value;
+    int arrIndex;
+    int elemIndex;
+} HeapNode;
 
-Node* createNode(char data) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = data;
-    newNode->left = newNode->right = NULL;
-    return newNode;
+typedef struct MinHeap{
+    HeapNode* arr;
+    int size; 
+    int capacity;
+} MinHeap;
+
+void swap(HeapNode* a, HeapNode* b){
+    HeapNode temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
-typedef struct Stack {
-    Node* items[100];
-    int top;
-} Stack;
+void heapifyDown(MinHeap* heap, int i){
+    int smallest = i;
+    int left = 2*i+1;
+    int right = 2*i+2;
 
-void push(Stack* s, Node* node){
-    s->items[++(s->top)] = node;
+    if (left < heap-> size && heap->arr[left].value < heap->arr[smallest].value) {smallest = left;}
+    if (right < heap-> size && heap->arr[right].value < heap->arr[smallest].value) {smallest = right;}
+
+    if (smallest != i){
+        swap(&heap->arr[i], &heap->arr[smallest]);
+        heapifyDown(heap, smallest);
+    }
 }
 
-Node* pop(Stack* s){
-    return s->items[(s->top)--];
+void heapifyUp(MinHeap* heap, int i){
+    int parent = (i-1)/2;
+    if (i>0 && heap->arr[i].value < heap->arr[parent].value){
+        swap(&heap->arr[i], &heap->arr[parent]);
+        heapifyUp(heap, parent);
+    }
 }
 
-Node* buildExpressionTree(char* postfix){
-    Stack s;
-    s.top = -1;
+void insertHeap(MinHeap *heap, HeapNode node){
+    if (heap->size == heap->capacity){
+        printf("Heap full!\n");
+        return;
+    }
+    heap->arr[heap->size] = node;
+    heapifyUp(heap, heap->size);
+    heap->size++;
+}
 
-    for (int i = 0; postfix[i]; i++){
-        char ch = postfix[i];
-        if (isspace(ch)) continue;
+HeapNode extractMin(MinHeap* heap){
+    HeapNode root = heap->arr[0];
+    heap->arr[0] = heap->arr[--heap->size];
+    heapifyDown(heap, 0);
+    return root;
+}
 
-        if (isalnum(ch)){
-            push(&s, createNode(ch));
-        }
-        else{
-            Node* node = createNode(ch);
-            node->right = pop(&s);
-            node->left = pop(&s);
-            push(&s, node);
+// Function to merge k sorted arrays
+void mergeKSortedArrays(int** arrays, int* sizes, int k){
+    int totalSize = 0;
+    for (int i = 0; i < k; i++){
+        totalSize += sizes[i];
+    }
+    int *result = (int*)malloc(totalSize * sizeof(int));
+    int resIndex = 0;
+    MinHeap* heap = (MinHeap*)malloc(sizeof(MinHeap));
+    heap->arr = (HeapNode*)malloc(k * sizeof(HeapNode));
+    heap->capacity = k;
+    heap->size = 0;
+
+    for (int i = 0; i < k; i++){
+        if (sizes[i] > 0){
+            HeapNode node = {arrays[i][0], i, 0};
+            insertHeap(heap, node);
         }
     }
-    return pop(&s);
-}
 
-int evaluate(Node* root){
-    if (!root) return 0;
-    if (!root->left && !root-> right)return root->data-'0';
+    while (heap->size > 0){
+        HeapNode minNode = extractMin(heap);
+        result[resIndex++] = minNode.value;
 
-    int left = evaluate(root->left);
-    int right = evaluate(root->right);
-    switch(root->data){
-        case '+': return left + right;
-        case '-': return left - right;
-        case '*': return left * right;
-        case '/': return left / right;
+        int nextIndex = minNode.elemIndex+1;
+        if (nextIndex < sizes[minNode.arrIndex]){
+            HeapNode nextNode = {arrays[minNode.arrIndex][nextIndex], minNode.arrIndex, nextIndex};
+            insertHeap(heap, nextNode);
+        }
     }
-    return 0;
-}
 
-void inorder(Node* root){
-    if (!root) return;
-    inorder(root->left);
-    printf("%c ", root->data);
-    inorder(root->right);
+    printf("Merged array: ");
+    for (int i = 0; i < totalSize; i++){
+        printf("%d ", result[i]);
+    }
+    printf("\n");
+    free(result);
+    free(heap->arr);
+    free(heap);
 }
 
 int main(){
-    char postfix[100];
-    printf("Enter postfix expression : ");
-    fgets(postfix,100,stdin);
-    postfix[strcspn(postfix,"\n")] = '\0';
+    int k;
+    printf("Enter number of arrays to merge: ");
+    scanf("%d", &k);
 
-    Node* root = buildExpressionTree(postfix);
+    int** arrays = (int**)malloc(k * sizeof(int*));
+    int* sizes = (int*)malloc(k * sizeof(int));
 
-    printf("Infix : ");
-    inorder(root);
-    printf("\n");
+    for (int i = 0; i < k; i++){
+        printf("Enter size of array %d: ", i+1);
+        scanf("%d", &sizes[i]);
+        arrays[i] = (int*)malloc(sizes[i] * sizeof(int));
+        printf("Enter elements of array %d in sorted order: ", i+1);
+        for (int j = 0; j < sizes[i]; j++){
+            scanf("%d", &arrays[i][j]);
+        }
+    }
 
-    int result = evaluate(root);
-    printf("Evaluation Result: %d\n", result);
-
+    mergeKSortedArrays(arrays, sizes, k);
+    for (int i = 0; i < k; i++){
+        free(arrays[i]);
+    }
+    free(arrays);
+    free(sizes);
     return 0;
 }
